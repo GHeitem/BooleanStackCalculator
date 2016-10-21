@@ -1,0 +1,167 @@
+import random
+
+MAX_IN = 5
+MAX_OUT = 5
+MAX_NOT = 5
+AVAIL_OPS = 60
+MAX_OPS = 8
+N = 2   #Нагрузочная способность элементов по выходу
+def not_(a):
+    return not a
+def and_(a,b):
+    return a and b
+def or_(a,b):
+    return a or b
+def nand(a, b):
+    return not (a and b)
+
+
+def nor(a, b):
+    return not (a and b)
+
+
+def imp(a, b):
+    return not a or b
+
+
+def xor(a, b):
+    return not a and b or a and not b
+
+
+NOT = -1
+AND = -2
+OR = -3
+XOR = -4
+NAND = -5
+NOR = -6
+IMP = -7
+ops = {
+    NOT: not_,
+    AND: and_,
+    OR: or_,
+    XOR: xor,
+    NAND: nand,
+    NOR: nor,
+    IMP: imp,
+}
+
+
+def do(code, a, b):
+    if code == NOT:
+        return int(a != True)
+    elif code >= 0:
+        pass
+    else:
+        return int(ops[code](a, b))
+
+
+class t_scheme:
+    array = []
+    works = True
+    nots = 0
+    ops = 0
+    ins = 0
+    exts = 0
+    unused = set()
+
+    def add(self, ty, i0, i1, ou):
+        """Добавить кортеж в таблицу"""
+        self.array.append({'type': ty, 'in0': i0, 'in1': i1, 'out': ou, 'used': 0})
+        self.array[i0]['used']+=1
+        self.unused = self.unused - {i0}
+        if i1 != None:
+            self.array[i1]['used'] +=1
+            self.unused = self.unused - {i1}
+        self.unused.add(ou)
+        if ty == NOT:
+            self.nots +=1
+
+    def __init__(self):
+        for i in range(MAX_IN):
+            self.add(i, i, i, i)
+            self.ins = self.ins + 1
+
+    def write(self):
+        print("T_scheme:")
+        print("     Elements:")
+        for x in self.array:
+            print(x)
+        print("     Works:   ", self.works)
+        print("     NotS:    ", self.nots)
+        print("     Ops:     ", self.ops)
+        print("     Ins:     ", self.ins)
+        print("     Exts:    ", self.exts)
+        print("     Unused:  ", self.unused)
+    def get_operation(self):
+        op = - random.randint(1,7)
+        if self.nots >= MAX_NOT:
+            while op == NOT:
+                op = - random.randint(1,7)
+        return op
+    def get_operands(self,code):
+        if self.ops > 2/3*AVAIL_OPS and len(self.unused)>MAX_OUT:
+            op1=random.choice(list(self.unused))
+            if code == NOT:
+                return [op1,0]
+            else:
+                op2 = random.choice(list(self.unused))
+                while op2 == op1:
+                    op2 = random.choice(list(self.unused))
+                return [op1,op2]
+        else:
+            op1 = random.randint(0,self.ins-1)
+            if code == NOT:
+                return [op1,0]
+            else:
+                op2 = random.randint(0,self.ins-1)
+                while op1 == op2:
+                    op2 = random.randint(0,self.ins-1)
+                return [op1,op2]
+    def add_rand(self):
+        if self.ops < AVAIL_OPS:
+            op = self.get_operation()
+            in0,in1 = self.get_operands(op)
+            self.add(op,in0,in1,self.ins);
+            self.ins+=1
+            self.ops+=1
+        else:
+            self.works = "False. Attempt to add more than AVAIL_OPS operations"
+
+    def evaluate_(self, vector):
+        ev = [(x) for x in list(vector)]
+        for element in self.array:
+            t_type = element['type']
+            in0 = element['in0']
+            in1 = element['in1']
+            out = element['out']
+            if t_type == NOT:
+                ev.append(do(t_type,ev[in0],0))
+            elif t_type < NOT:
+                print(len(ev),ev,in0,in1)
+                try:
+                    ev.append(do(t_type,ev[in0],ev[in1]))
+                except IndexError:
+                    print('->',len(ev),ev,in0,in1)
+        return{x:ev[x] for x in list(self.unused)}
+
+    def diag(self):
+        table = []
+        for a in range(2):
+            for b in range(2):
+                for c in range(2):
+                    for d in range(2):
+                        for e in range(2):
+                            table.append(self.evaluate_([a,b,c,d,e]))
+        return table
+
+
+if __name__ == "__main__":
+    a = t_scheme()
+    while a.ops < AVAIL_OPS:
+        a.add_rand();
+    a.write()
+    print('Result:', a.evaluate_([0, 0, 0, 0, 0]))
+    table = a.diag();
+    print('Таблица истинности: ')
+    for x in table:
+        print(x);
